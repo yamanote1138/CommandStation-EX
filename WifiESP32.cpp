@@ -240,8 +240,25 @@ bool WifiESP::setup(const char *SSid,
 	DIAG(F("Wifi STA IP 2nd try %s"),WiFi.localIP().toString().c_str());
 	wifiUp = true;
       } else {
+#ifdef WIFI_NO_AP_FALLBACK
+	// Keep retrying the router instead of starting an AP that reuses our STA SSID
+	DIAG(F("Wifi STA mode FAIL. AP fallback disabled, retrying"));
+	LCD(7, F("Waiting for WiFi"));
+	while (WiFi.status() != WL_CONNECTED) {
+	  WiFi.disconnect();
+	  WiFi.begin(SSid, password);
+	  for (tries = 40; WiFi.status() != WL_CONNECTED && tries; tries--) {
+	    Serial.print('.');
+	    delay(500);
+	  }
+	}
+	DIAG(F("Wifi in STA mode"));
+	LCD(7, F("IP: %s"), WiFi.localIP().toString().c_str());
+	wifiUp = true;
+#else
 	DIAG(F("Wifi STA mode FAIL. Will revert to AP mode"));
 	wifiUp=false;
+#endif
       }
     }
   }
